@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alphabet Adventure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
+        
+        body {
+            font-family: 'Fredoka One', cursive;
+            background-color: #f0fdf4;
+            touch-action: manipulation;
+            user-select: none;
+        }
+
+        .letter-display {
+            text-shadow: 6px 6px 0px rgba(0,0,0,0.1);
+        }
+
+        .image-card {
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 6rem;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            background: white;
+            border-radius: 2rem;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+        }
+
+        .image-card:active {
+            transform: scale(0.9);
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            70% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+
+        .animate-pop {
+            animation: pop 0.5s ease-out forwards;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-15px); }
+            40% { transform: translateX(15px); }
+            60% { transform: translateX(-10px); }
+            80% { transform: translateX(10px); }
+        }
+
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-6">
+
+    <!-- 頂部資訊 (分數) -->
+    <div class="w-full max-w-lg flex justify-between items-center px-4">
+        <div class="text-4xl font-black text-yellow-500 flex items-center gap-2">
+            ⭐ <span id="score">0</span>
+        </div>
+        <div id="status-icon" class="text-5xl"></div>
+    </div>
+
+    <!-- 題目區域：超大英文字母 -->
+    <div class="flex-1 flex items-center justify-center">
+        <div id="target-letter" class="letter-display text-[14rem] md:text-[18rem] font-black text-emerald-500 animate-pop">
+            A
+        </div>
+    </div>
+
+    <!-- 選項區域：三個大方塊 -->
+    <div id="options-container" class="w-full max-w-2xl grid grid-cols-3 gap-4 mb-10">
+        <!-- 由 JavaScript 動態生成 -->
+    </div>
+
+    <!-- 開始畫面 -->
+    <div id="start-screen" class="fixed inset-0 bg-emerald-500 flex items-center justify-center z-50 cursor-pointer" onclick="startGame()">
+        <div class="text-center">
+            <div class="text-[12rem] animate-bounce">🎈</div>
+            <div class="text-white text-6xl font-black mt-4">GO!</div>
+        </div>
+    </div>
+
+    <script>
+        // 英文字母與對應物體資料庫 (A-Z)
+        const alphabetData = [
+            { l: 'A', items: ['🍎', '🐜', '🚑', '🛩️'] },
+            { l: 'B', items: ['🍌', '🐻', '🐝', '⚽'] },
+            { l: 'C', items: ['🐱', '🍰', '🚗', '🥕'] },
+            { l: 'D', items: ['🐶', '🦆', '🥁', '🍩'] },
+            { l: 'E', items: ['🐘', '🥚', '🦅', '📧'] },
+            { l: 'F', items: ['🐟', '🐸', '🦊', '🍟'] },
+            { l: 'G', items: ['🍇', '🦒', '🎸', '🎁'] },
+            { l: 'H', items: ['🏠', '🐴', '🚁', '🍔'] },
+            { l: 'I', items: ['🍦', '🦎', '🧊', '🇮gl'] }, // Igloo emoji varies
+            { l: 'J', items: ['🚀', '👕', '🍹', '🐆'] }, // Jet, Jacket, Juice, Jaguar
+            { l: 'K', items: ['🪁', '🔑', '🐨', '🦘'] },
+            { l: 'L', items: ['🦁', '🍋', '🍭', '🍃'] },
+            { l: 'M', items: ['🐒', '🌙', '🥛', '🍄'] },
+            { l: 'N', items: ['🌲', '📔', '👃', '🕸️'] }, // Nature, Notebook, Nose, Net
+            { l: 'O', items: ['🐙', '🍊', '🦉', '🧅'] },
+            { l: 'P', items: ['🐼', '🍕', '✏️', '🍍'] },
+            { l: 'Q', items: ['👑', '❓', '🦆'] }, // Queen, Question, Quack
+            { l: 'R', items: ['🤖', '🚀', '🌈', '🐇'] },
+            { l: 'S', items: ['☀️', '🐍', '🍓', '🛳️'] },
+            { l: 'T', items: ['🐯', '🚂', '🍅', '🐢'] },
+            { l: 'U', items: ['🌂', '🦄', '🆙'] },
+            { l: 'V', items: ['🎻', '🚐', '🌋', '🏐'] },
+            { l: 'W', items: ['🍉', '⌚', '🐋', '🕸️'] },
+            { l: 'X', items: ['🎻', '❌', '🦴'] }, // Xylophone, X-mark, X-ray(bone)
+            { l: 'Y', items: ['⛵', '🧶', '🍋'] }, // Yacht, Yarn, Yellow(lemon)
+            { l: 'Z', items: ['🦓', '⚡', '🤐'] }  // Zebra, Zap, Zipper
+        ];
+
+        let score = 0;
+        let isWaiting = false;
+
+        // 初始化遊戲
+        function startGame() {
+            document.getElementById('start-screen').style.display = 'none';
+            renderNewQuestion();
+        }
+
+        // 產生新題目
+        function renderNewQuestion() {
+            isWaiting = false;
+            document.getElementById('status-icon').innerText = '';
+            
+            // 隨機選一個字母
+            const q = alphabetData[Math.floor(Math.random() * alphabetData.length)];
+            const targetEl = document.getElementById('target-letter');
+            targetEl.innerText = q.l;
+            
+            // 重新觸發動畫
+            targetEl.classList.remove('animate-pop');
+            void targetEl.offsetWidth; 
+            targetEl.classList.add('animate-pop');
+
+            // 準備答案：1 正確 + 2 錯誤
+            const correctEmoji = q.items[Math.floor(Math.random() * q.items.length)];
+            
+            let distractors = [];
+            while(distractors.length < 2) {
+                const randomQ = alphabetData[Math.floor(Math.random() * alphabetData.length)];
+                if (randomQ.l !== q.l) {
+                    const emoji = randomQ.items[Math.floor(Math.random() * randomQ.items.length)];
+                    if (!distractors.includes(emoji) && emoji !== correctEmoji) {
+                        distractors.push(emoji);
+                    }
+                }
+            }
+
+            const options = [
+                { emoji: correctEmoji, correct: true },
+                { emoji: distractors[0], correct: false },
+                { emoji: distractors[1], correct: false }
+            ].sort(() => Math.random() - 0.5);
+
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+
+            options.forEach(opt => {
+                const btn = document.createElement('div');
+                btn.className = "image-card border-8 border-transparent cursor-pointer";
+                btn.innerHTML = opt.emoji;
+                btn.onclick = () => handleSelect(btn, opt.correct);
+                container.appendChild(btn);
+            });
+        }
+
+        // 處理玩家選擇
+        function handleSelect(element, isCorrect) {
+            if (isWaiting) return;
+
+            const statusIcon = document.getElementById('status-icon');
+
+            if (isCorrect) {
+                isWaiting = true;
+                score += 10;
+                document.getElementById('score').innerText = score;
+                
+                element.classList.add('border-green-400', 'bg-green-50');
+                statusIcon.innerText = '✅';
+                
+                setTimeout(() => {
+                    renderNewQuestion();
+                }, 1000);
+            } else {
+                element.classList.add('animate-shake', 'border-red-400', 'bg-red-50');
+                statusIcon.innerText = '❌';
+                
+                setTimeout(() => {
+                    element.classList.remove('animate-shake', 'border-red-400', 'bg-red-50');
+                    statusIcon.innerText = '';
+                }, 500);
+            }
+        }
+    </script>
+</body>
+</html>
